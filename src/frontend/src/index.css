@@ -1,0 +1,126 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Figtree:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Financial terminal — clean light mode */
+    --background: 0.97 0.005 240;
+    --foreground: 0.14 0.015 250;
+
+    --card: 1 0 0;
+    --card-foreground: 0.14 0.015 250;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.14 0.015 250;
+
+    /* Teal-cyan primary — distinctive, financial, not generic blue */
+    --primary: 0.52 0.13 200;
+    --primary-foreground: 0.98 0 0;
+
+    --secondary: 0.94 0.01 240;
+    --secondary-foreground: 0.14 0.015 250;
+
+    --muted: 0.94 0.008 240;
+    --muted-foreground: 0.52 0.01 240;
+
+    --accent: 0.92 0.01 240;
+    --accent-foreground: 0.14 0.015 250;
+
+    --destructive: 0.58 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+
+    --border: 0.88 0.008 240;
+    --input: 0.88 0.008 240;
+    --ring: 0.52 0.13 200;
+
+    --chart-1: 0.52 0.13 200;
+    --chart-2: 0.62 0.15 165;
+    --chart-3: 0.68 0.18 45;
+    --chart-4: 0.6 0.18 340;
+    --chart-5: 0.58 0.12 270;
+
+    --sidebar: 0.99 0 0;
+    --sidebar-foreground: 0.14 0.015 250;
+    --sidebar-primary: 0.52 0.13 200;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.94 0.008 240;
+    --sidebar-accent-foreground: 0.14 0.015 250;
+    --sidebar-border: 0.88 0.008 240;
+    --sidebar-ring: 0.52 0.13 200;
+  }
+
+  .dark {
+    /* Dark mode — deep charcoal, not black */
+    --background: 0.11 0.01 250;
+    --foreground: 0.93 0.008 240;
+
+    --card: 0.155 0.012 250;
+    --card-foreground: 0.93 0.008 240;
+
+    --popover: 0.18 0.012 250;
+    --popover-foreground: 0.93 0.008 240;
+
+    /* Brighter teal in dark mode */
+    --primary: 0.62 0.16 200;
+    --primary-foreground: 0.11 0.01 250;
+
+    --secondary: 0.21 0.012 250;
+    --secondary-foreground: 0.93 0.008 240;
+
+    --muted: 0.2 0.01 250;
+    --muted-foreground: 0.62 0.01 240;
+
+    --accent: 0.22 0.012 250;
+    --accent-foreground: 0.93 0.008 240;
+
+    --destructive: 0.62 0.24 25;
+    --destructive-foreground: 0.93 0.008 240;
+
+    --border: 0.24 0.012 250;
+    --input: 0.24 0.012 250;
+    --ring: 0.62 0.16 200;
+
+    --chart-1: 0.62 0.16 200;
+    --chart-2: 0.68 0.18 165;
+    --chart-3: 0.74 0.2 45;
+    --chart-4: 0.66 0.22 340;
+    --chart-5: 0.64 0.14 270;
+
+    --sidebar: 0.13 0.012 250;
+    --sidebar-foreground: 0.93 0.008 240;
+    --sidebar-primary: 0.62 0.16 200;
+    --sidebar-primary-foreground: 0.11 0.01 250;
+    --sidebar-accent: 0.2 0.012 250;
+    --sidebar-accent-foreground: 0.93 0.008 240;
+    --sidebar-border: 0.22 0.012 250;
+    --sidebar-ring: 0.62 0.16 200;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Figtree", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
