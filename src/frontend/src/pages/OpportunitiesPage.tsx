@@ -24,19 +24,19 @@ import type { OHLCRow } from "../lib/types";
 const DIP_THRESHOLD = 10;
 
 function formatPrice(val: number | null, decimals = 2): string {
-  if (val === null) return "—";
+  if (val === null) return "\u2014";
   return val.toFixed(decimals);
 }
 
 function formatVolume(val: number | null | undefined): string {
-  if (val == null) return "—";
+  if (val == null) return "\u2014";
   if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
   if (val >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
   return String(val);
 }
 
 function formatChange(val: number | null): string {
-  if (val === null) return "—";
+  if (val === null) return "\u2014";
   return `${val >= 0 ? "+" : ""}${val.toFixed(2)}%`;
 }
 

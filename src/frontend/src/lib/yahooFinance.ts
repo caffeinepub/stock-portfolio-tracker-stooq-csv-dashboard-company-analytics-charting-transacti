@@ -5,67 +5,113 @@ export interface StooqError {
   message: string;
 }
 
-// Convert Stooq-style ticker to Yahoo Finance symbol
-// nvda.us → NVDA, asml.as → ASML.AS, stmpa.pa → STMPA.PA
+/**
+ * Convert Stooq-style ticker to Yahoo Finance symbol.
+ * Examples:
+ *   nvda.us   → NVDA
+ *   asml.as   → ASML.AS
+ *   stmpa.pa  → STMPA.PA
+ *   ifx.de    → IFX.DE
+ *   maersk-b.co → MAERSK-B.CO
+ *   eric-b.st   → ERIC-B.ST
+ */
 export function stooqToYahoo(stooqTicker: string): string {
-  const upper = stooqTicker.toUpperCase();
-  if (upper.endsWith(".US")) {
-    return upper.slice(0, -3);
+  const parts = stooqTicker.split(".");
+  if (parts.length < 2) return stooqTicker.toUpperCase();
+  const suffix = parts[parts.length - 1].toLowerCase();
+  const base = parts.slice(0, -1).join(".").toUpperCase();
+  if (suffix === "us") return base;
+  return `${base}.${suffix.toUpperCase()}`;
+}
+
+function yahooChartUrl(symbol: string, host: string): string {
+  const period2 = Math.floor(Date.now() / 1000);
+  const period1 = period2 - 6 * 365 * 24 * 60 * 60; // 6 years back
+  return `https://${host}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}&includePrePost=false&events=div%2Csplit`;
+}
+
+async function tryDirect(symbol: string, timeout = 30000): Promise<any> {
+  // Try query1 and query2 in parallel, take first to succeed
+  const hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    return await Promise.any(
+      hosts.map(async (host) => {
+        const url = yahooChartUrl(symbol, host);
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status} from ${host}`);
+        const text = await res.text();
+        if (text.trimStart().startsWith("<"))
+          throw new Error(`HTML response from ${host}`);
+        const json = JSON.parse(text);
+        // Validate structure early so we don't accept garbage
+        if (!json?.chart?.result?.[0]?.timestamp)
+          throw new Error(`Invalid JSON structure from ${host}`);
+        return json;
+      }),
+    );
+  } finally {
+    clearTimeout(timer);
   }
-  return upper;
 }
 
-async function tryFetch(url: string, timeout = 15000): Promise<Response> {
-  return fetch(url, {
-    signal: AbortSignal.timeout(timeout),
-    headers: { Accept: "application/json, text/plain, */*" },
-  });
-}
-
-async function fetchYahooChart(yahooSymbol: string): Promise<any> {
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=5y&includePrePost=false`;
-
-  const attempts = [
-    () => tryFetch(url),
-    () => tryFetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`),
-    () =>
-      tryFetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`),
+async function tryProxy(symbol: string, timeout = 30000): Promise<any> {
+  const directUrl = yahooChartUrl(symbol, "query1.finance.yahoo.com");
+  const proxies = [
+    `https://corsproxy.io/?url=${encodeURIComponent(directUrl)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
   ];
 
-  let lastErr: Error = new Error("Tous les serveurs ont échoué");
+  let lastErr: Error = new Error("Tous les proxies ont échoué");
 
-  for (let i = 0; i < attempts.length; i++) {
+  for (const proxyUrl of proxies) {
     try {
-      const res = await attempts[i]();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      let res: Response;
+      try {
+        res = await fetch(proxyUrl, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) {
         lastErr = new Error(`HTTP ${res.status}`);
         continue;
       }
       const text = await res.text();
-      if (text.trimStart().startsWith("<")) {
-        lastErr = new Error("Réponse HTML inattendue");
+      let raw = text;
+      // allorigins wraps in { contents: "..." }
+      if (proxyUrl.includes("allorigins")) {
+        try {
+          const wrapper = JSON.parse(text);
+          if (typeof wrapper?.contents === "string") raw = wrapper.contents;
+        } catch {
+          // not wrapped
+        }
+      }
+      if (raw.trimStart().startsWith("<")) {
+        lastErr = new Error("Réponse HTML du proxy");
         continue;
       }
       let json: any;
       try {
-        json = JSON.parse(text);
+        json = JSON.parse(raw);
       } catch {
-        lastErr = new Error("Réponse non-JSON");
+        lastErr = new Error("JSON invalide du proxy");
         continue;
       }
-      // allorigins wraps the response in { contents: "..." }
-      if (i === 2 && typeof json?.contents === "string") {
-        const inner = json.contents.trimStart();
-        if (inner.startsWith("<")) {
-          lastErr = new Error("Réponse HTML via proxy");
-          continue;
-        }
-        try {
-          json = JSON.parse(json.contents);
-        } catch {
-          lastErr = new Error("Réponse proxy non-JSON");
-          continue;
-        }
+      if (!json?.chart?.result?.[0]?.timestamp) {
+        lastErr = new Error("Structure Yahoo invalide via proxy");
+        continue;
       }
       return json;
     } catch (err) {
@@ -73,6 +119,17 @@ async function fetchYahooChart(yahooSymbol: string): Promise<any> {
     }
   }
   throw lastErr;
+}
+
+async function fetchYahooChart(symbol: string): Promise<any> {
+  // 1. Try direct browser fetch (CORS supported by Yahoo for most regions)
+  try {
+    return await tryDirect(symbol);
+  } catch {
+    // fall through to proxy
+  }
+  // 2. Proxy fallback
+  return tryProxy(symbol);
 }
 
 function parseYahooChart(data: any): OHLCRow[] {
