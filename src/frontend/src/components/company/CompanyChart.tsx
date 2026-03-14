@@ -168,7 +168,7 @@ export function CompanyChart({
         <CardTitle className="text-sm font-medium">Graphique</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <ResponsiveContainer width="100%" height={420}>
+        <ResponsiveContainer width="100%" height={500}>
           <ComposedChart
             data={chartData}
             margin={{ top: 8, right: 16, bottom: 8, left: 8 }}

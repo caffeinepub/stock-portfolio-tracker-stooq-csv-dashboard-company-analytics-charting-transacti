@@ -1,48 +1,42 @@
-# Stock Portfolio Tracker (Stooq CSV)
+# Stock Portfolio Tracker
 
 ## Current State
-Frontend shell exists with routing to Companies, CompanyDetail, Portfolio, Settings pages. No working backend, no real data fetching, no charts, no transactions logic.
+
+The app fetches stock data via Stooq CSV format through CORS proxies (`api.allorigins.win`, `corsproxy.io`, `thingproxy.freeboard.io`). All data fetching is in `src/frontend/src/lib/stooq.ts`, used by `useStooqHistory` hook and `usePortfolio` hook. The proxies are failing with "Failed to fetch" errors, making all company detail pages unusable.
 
 ## Requested Changes (Diff)
 
 ### Add
-- HTTP outcall backend endpoint to proxy Stooq CSV requests (bypass CORS)
-- Full list of 100 companies with confirmed Stooq tickers
-- Companies page: search bar, favorites, alphabetical list
-- Company detail page: stats panel (price, variations, 52w high/low, MA50/MA200, volatility, drawdown), interactive chart (line/candlestick, 1y/2y/3y/5y, MA overlays, zoom, tooltips), horizontal price lines (support/resistance/buy target/sell target/custom), transactions (BUY/SELL with date/qty/price/note), buy targets with status, BUY/SELL markers on chart
-- Portfolio page: total value, global P&L, position breakdown, performance per stock
-- Settings page: dark/light mode toggle, data preferences
-- localStorage persistence for: transactions, horizontal lines, buy targets, favorites
-- Dark/light mode toggle
-- Sidebar navigation: Companies, Portfolio, Settings
+- New `src/frontend/src/lib/yahooFinance.ts` module that:
+  - Converts Stooq-style tickers to Yahoo Finance format: uppercase everything, drop `.US` suffix (e.g. `nvda.us` → `NVDA`, `asml.as` → `ASML.AS`, `stmpa.pa` → `STMPA.PA`)
+  - Fetches from `https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2y&includePrePost=false`
+  - First tries direct fetch (Yahoo Finance v8 chart API supports CORS with `Access-Control-Allow-Origin: *`)
+  - On CORS/network error, falls back to `https://corsproxy.io/?url=` + encoded URL
+  - Second fallback: `https://api.allorigins.win/get?url=` + encoded URL (parses `.contents` field from the JSON wrapper)
+  - Validates response is JSON (not HTML) before parsing
+  - Parses Yahoo Finance chart JSON: `data.chart.result[0]` → timestamps + `indicators.quote[0]` (open/high/low/close/volume)
+  - Returns same `TimeSeries | StooqError` type as current `stooq.ts`
+  - Exports `fetchStockHistory` (aliased as `fetchStooqHistory` for backward compat) and `filterByTimeRange`
+  - For `3Y` range: request `5y` from Yahoo and filter client-side
+  - Timeout of 15 seconds per attempt
 
 ### Modify
-- App.tsx: fix routing (was incorrectly nesting RouterProvider)
-- Rebuild all pages from scratch with full functionality
+- `src/frontend/src/lib/stooq.ts`: replace all content with re-exports from `yahooFinance.ts` so no other files need to change (or update all imports directly)
+- `src/frontend/src/hooks/usePortfolio.ts`: if importing from `stooq`, update to use `fetchStockHistory`
+- `src/frontend/src/pages/CompanyDetailPage.tsx`: already imports `filterByTimeRange` from `stooq` — ensure this still works
 
 ### Remove
-- Broken stub components
+- The CORS proxy cascade logic for Stooq CSV — replaced by Yahoo Finance approach
+- The CSV parsing logic — replaced by Yahoo Finance JSON parsing
 
 ## Implementation Plan
 
-### 100 Companies List
-US (.us): intc, amd, mu, nvda, qcom, txn, amat, lrcx, klac, meta, googl, amzn, nflx, pypl, sq, crm, orcl, ibm, tsla, gm, f, xom, cvx, cop, oxy, slb, hal, bkr, fcx, clf, ccj, ba, cat, de, ge, mmm, hon, cmi, zim, fro, eurn, mrna, gild, amgn, biib, vrtx, regn, ilmn, crsp, nvax, ea, ttwo, wbd, dis, dal, aal, ual, anet, csco, jnpr, vale, mrvl, wdc, baba, ntes, bidu, jd, se, shop, nxpi, nhydy, nem, gold, sblk, dac, bntx, ryaay, nsany, tm (82 .us)
-Europe: stmpa.pa, air.pa, rno.pa, af.pa, tte.pa, mt.pa, ubi.pa, asml.as, stlam.as, ifx.de, vow3.de, bmw.de, mbg.de, sie.de, hlag.de, lha.de, abbn.sw, maersk-b.co, nokia.he, eric-b.st (20)
-Canada: bhp.to, rio.to (2) — but vale moved to .us, so total = 82 + 20 = 102... trim to exactly 100 by removing 2 duplicates or borderline ones.
-
-### Backend
-- Single Motoko endpoint: `fetchStooqData(ticker: Text) : async Text` — performs HTTP GET to stooq.com CSV URL, returns raw CSV text
-- Cache results with TTL to avoid repeated external calls
-
-### Frontend
-- `data/companies.ts`: full 100-company list with name, ticker, exchange, sector
-- `hooks/useStooqData.ts`: fetches CSV from backend, parses OHLCV, caches in memory
-- `hooks/useLocalStorage.ts`: generic localStorage hook
-- `lib/calculations.ts`: price change %, MA50, MA200, volatility, drawdown, P&L
-- `lib/csvParser.ts`: parse Stooq CSV format (Date, Open, High, Low, Close, Volume)
-- `components/layout/DashboardLayout.tsx`: sidebar + main content
-- `components/chart/StockChart.tsx`: Recharts-based line/candlestick chart with MA overlays, horizontal lines, transaction markers, zoom, tooltip
-- `pages/CompaniesPage.tsx`: search, favorites filter, alphabetical company list
-- `pages/CompanyDetailPage.tsx`: stats, chart, lines manager, transactions, buy targets
-- `pages/PortfolioPage.tsx`: aggregated portfolio view
-- `pages/SettingsPage.tsx`: theme toggle
+1. Create `src/frontend/src/lib/yahooFinance.ts` with:
+   - `stooqToYahoo(ticker: string): string` converter
+   - `fetchYahooChart(yahooSymbol: string): Promise<any>` with 3-attempt strategy (direct, corsproxy.io, allorigins.win)
+   - `parseYahooChart(data: any, stooqTicker: string): OHLCRow[]` parser
+   - `fetchStooqHistory(ticker: string): Promise<TimeSeries | StooqError>` (main export, same signature as before)
+   - `filterByTimeRange` (same as before, re-export)
+   - All error messages in French
+2. Replace `src/frontend/src/lib/stooq.ts` content entirely with imports/re-exports from `yahooFinance.ts` to maintain backward compatibility with all existing imports
+3. Run validate

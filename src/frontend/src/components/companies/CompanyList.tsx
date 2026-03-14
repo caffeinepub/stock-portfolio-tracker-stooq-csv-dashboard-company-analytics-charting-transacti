@@ -43,11 +43,11 @@ export function CompanyList({ companies, onSelectCompany }: CompanyListProps) {
   }
 
   return (
-    <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+    <div className="grid xl:grid-cols-2 divide-y xl:divide-y-0 divide-border rounded-lg border border-border overflow-hidden">
       {companies.map((company, index) => (
         <div
           key={company.ticker}
-          className="group relative flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors"
+          className="group relative flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors xl:border-b xl:border-border"
           data-ocid={`companies.item.${index + 1}`}
         >
           {/* Clickable overlay for row (excluding the favorite button) */}
@@ -95,7 +95,11 @@ export function CompanyList({ companies, onSelectCompany }: CompanyListProps) {
             }
           >
             <Star
-              className={`h-4 w-4 transition-colors ${isFavorite(company.ticker) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40 group-hover:text-muted-foreground"}`}
+              className={`h-4 w-4 transition-colors ${
+                isFavorite(company.ticker)
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-muted-foreground/40 group-hover:text-muted-foreground"
+              }`}
             />
           </button>
           <ChevronRight className="relative z-10 h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors shrink-0 pointer-events-none" />

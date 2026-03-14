@@ -10,6 +10,7 @@ import {
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { CompaniesPage } from "./pages/CompaniesPage";
 import { CompanyDetailPage } from "./pages/CompanyDetailPage";
+import { OpportunitiesPage } from "./pages/OpportunitiesPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
@@ -45,6 +46,12 @@ const portfolioRoute = createRoute({
   component: PortfolioPage,
 });
 
+const opportunitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/opportunities",
+  component: OpportunitiesPage,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -55,6 +62,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   companyRoute,
   portfolioRoute,
+  opportunitiesRoute,
   settingsRoute,
 ]);
 

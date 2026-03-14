@@ -10,11 +10,9 @@ import type {
   PositionMetrics,
   Transaction,
 } from "../lib/types";
-import { useActor } from "./useActor";
 import { useLocalStorage } from "./useLocalStorage";
 
 export function usePortfolio() {
-  const { actor, isFetching: actorFetching } = useActor();
   const [allTransactions] = useLocalStorage<Record<string, Transaction[]>>(
     STORAGE_KEYS.TRANSACTIONS,
     {},
@@ -28,18 +26,16 @@ export function usePortfolio() {
     queries: tickers.map((ticker) => ({
       queryKey: ["stooq-history", ticker],
       queryFn: async () => {
-        if (!actor) return null;
-        const result = await fetchStooqHistory(ticker, actor);
+        const result = await fetchStooqHistory(ticker);
         if ("type" in result) throw new Error(result.message);
         return result;
       },
-      enabled: !!actor && !actorFetching,
       staleTime: 5 * 60 * 1000,
       retry: 1,
     })),
   });
 
-  const isLoading = actorFetching || priceQueries.some((q) => q.isLoading);
+  const isLoading = priceQueries.some((q) => q.isLoading);
   const hasError = priceQueries.some((q) => q.isError);
 
   const summary: PortfolioSummary | null = useMemo(() => {

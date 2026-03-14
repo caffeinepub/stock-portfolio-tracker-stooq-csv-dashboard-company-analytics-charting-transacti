@@ -51,7 +51,6 @@ export function CompanyDetailPage() {
   }, [timeSeries, range]);
 
   const stats = useMemo(() => {
-    // Always compute stats from full data for accuracy
     if (!timeSeries) return calculateStatistics([]);
     return calculateStatistics(timeSeries.data);
   }, [timeSeries]);
@@ -115,7 +114,7 @@ export function CompanyDetailPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <Button
             variant="ghost"
@@ -149,7 +148,7 @@ export function CompanyDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 shrink-0">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-3 shrink-0">
           <RangeSelector value={range} onChange={setRange} />
           <Tabs
             value={preferences.mode}

@@ -164,88 +164,94 @@ export function PortfolioPage() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Positions</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table data-ocid="portfolio.table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Entreprise</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-                <TableHead className="text-right">Prix moy.</TableHead>
-                <TableHead className="text-right">Prix act.</TableHead>
-                <TableHead className="text-right">Valeur</TableHead>
-                <TableHead className="text-right">P&L</TableHead>
-                <TableHead className="text-right">P&L %</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {summary.positions.map((position, i) => {
-                const plColor =
-                  position.unrealizedPL >= 0
-                    ? "text-emerald-500"
-                    : "text-red-500";
-                const Icon =
-                  position.unrealizedPL >= 0 ? TrendingUp : TrendingDown;
+      <div className="overflow-x-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Positions</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table data-ocid="portfolio.table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Entreprise</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">
+                    Prix moy.
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-right">
+                    Prix act.
+                  </TableHead>
+                  <TableHead className="text-right">Valeur</TableHead>
+                  <TableHead className="text-right">P&L</TableHead>
+                  <TableHead className="text-right">P&L %</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.positions.map((position, i) => {
+                  const plColor =
+                    position.unrealizedPL >= 0
+                      ? "text-emerald-500"
+                      : "text-red-500";
+                  const Icon =
+                    position.unrealizedPL >= 0 ? TrendingUp : TrendingDown;
 
-                return (
-                  <TableRow
-                    key={position.ticker}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() =>
-                      navigate({
-                        to: "/company/$ticker",
-                        params: { ticker: position.ticker },
-                      })
-                    }
-                    data-ocid={`portfolio.row.${i + 1}`}
-                  >
-                    <TableCell>
-                      <div>
-                        <span className="font-medium text-sm">
-                          {getCompanyName(position.ticker)}
+                  return (
+                    <TableRow
+                      key={position.ticker}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() =>
+                        navigate({
+                          to: "/company/$ticker",
+                          params: { ticker: position.ticker },
+                        })
+                      }
+                      data-ocid={`portfolio.row.${i + 1}`}
+                    >
+                      <TableCell>
+                        <div>
+                          <span className="font-medium text-sm">
+                            {getCompanyName(position.ticker)}
+                          </span>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {position.ticker}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {position.sharesHeld.toFixed(4)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-right font-mono text-sm">
+                        {position.avgBuyPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-right font-mono text-sm">
+                        {position.currentPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {position.currentValue.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-mono text-sm ${plColor}`}
+                      >
+                        <span className="flex items-center justify-end gap-1">
+                          <Icon className="h-3 w-3" />
+                          {position.unrealizedPL >= 0 ? "+" : ""}
+                          {position.unrealizedPL.toFixed(2)}
                         </span>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {position.ticker}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {position.sharesHeld.toFixed(4)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {position.avgBuyPrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {position.currentPrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {position.currentValue.toFixed(2)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-mono text-sm ${plColor}`}
-                    >
-                      <span className="flex items-center justify-end gap-1">
-                        <Icon className="h-3 w-3" />
-                        {position.unrealizedPL >= 0 ? "+" : ""}
-                        {position.unrealizedPL.toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-mono text-sm font-semibold ${plColor}`}
-                    >
-                      {position.unrealizedPLPercent >= 0 ? "+" : ""}
-                      {position.unrealizedPLPercent.toFixed(2)}%
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-mono text-sm font-semibold ${plColor}`}
+                      >
+                        {position.unrealizedPLPercent >= 0 ? "+" : ""}
+                        {position.unrealizedPLPercent.toFixed(2)}%
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
