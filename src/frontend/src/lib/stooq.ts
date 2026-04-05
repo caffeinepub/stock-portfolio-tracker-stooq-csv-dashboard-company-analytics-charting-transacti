@@ -1,5 +1,6 @@
 // Stooq CSV fetching — frontend only, no backend canister
-// Uses multiple CORS proxies in parallel (Promise.any), takes the first valid response
+// NOTE: This module is kept for filterByTimeRange and as fallback.
+// Primary data fetching should use yahooFinance.ts (Yahoo Finance + Stooq fallback).
 import type { OHLCRow, TimeSeries } from "./types";
 
 export interface StooqError {
@@ -7,8 +8,9 @@ export interface StooqError {
   message: string;
 }
 
+// corsproxy.io correct format: ?ENCODED_URL (NOT ?url=ENCODED_URL)
 const PROXIES: Array<(url: string) => string> = [
-  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
   (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
@@ -34,8 +36,16 @@ async function tryProxy(
     const res = await fetch(proxyUrl, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
-    if (!isValidCSV(text)) throw new Error("Contenu non-CSV reçu");
-    return text;
+    // allorigins might wrap in JSON
+    let content = text;
+    try {
+      const wrapper = JSON.parse(text);
+      if (typeof wrapper?.contents === "string") content = wrapper.contents;
+    } catch {
+      // raw content
+    }
+    if (!isValidCSV(content)) throw new Error("Contenu non-CSV reçu");
+    return content;
   } finally {
     clearTimeout(timer);
   }
@@ -43,8 +53,6 @@ async function tryProxy(
 
 async function fetchStooqCSVRaw(ticker: string): Promise<string> {
   const stooqUrl = `https://stooq.com/q/d/l/?s=${encodeURIComponent(ticker)}&i=d`;
-
-  // Launch all proxies simultaneously, take the first valid response
   return Promise.any(PROXIES.map((proxyFn) => tryProxy(stooqUrl, proxyFn)));
 }
 

@@ -2,41 +2,51 @@
 
 ## Current State
 
-The app fetches stock data via Stooq CSV format through CORS proxies (`api.allorigins.win`, `corsproxy.io`, `thingproxy.freeboard.io`). All data fetching is in `src/frontend/src/lib/stooq.ts`, used by `useStooqHistory` hook and `usePortfolio` hook. The proxies are failing with "Failed to fetch" errors, making all company detail pages unusable.
+The app is a full-stack French-language stock portfolio dashboard with:
+- 100 major companies tracked via `companyUniverse.ts`
+- All data fetching in `yahooFinance.ts` (named `fetchStooqHistory` but using Yahoo Finance + Stooq fallback)
+- `stooq.ts` kept for `filterByTimeRange` utility and Stooq fallback
+- Data fetched via `useStooqHistory` hook (key: `stock-history`)
+- `OpportunitiesPage`, `usePortfolio`, and `CompanyDetailPage` all use `fetchStooqHistory` from `yahooFinance.ts`
+- Yahoo Finance direct fetch fails for most tickers due to CORS/session cookie blocking
+- CORS proxies (corsproxy.io, allorigins.win, codetabs.com, thingproxy) are unreliable (403, 400, timeouts)
 
 ## Requested Changes (Diff)
 
 ### Add
-- New `src/frontend/src/lib/yahooFinance.ts` module that:
-  - Converts Stooq-style tickers to Yahoo Finance format: uppercase everything, drop `.US` suffix (e.g. `nvda.us` → `NVDA`, `asml.as` → `ASML.AS`, `stmpa.pa` → `STMPA.PA`)
-  - Fetches from `https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2y&includePrePost=false`
-  - First tries direct fetch (Yahoo Finance v8 chart API supports CORS with `Access-Control-Allow-Origin: *`)
-  - On CORS/network error, falls back to `https://corsproxy.io/?url=` + encoded URL
-  - Second fallback: `https://api.allorigins.win/get?url=` + encoded URL (parses `.contents` field from the JSON wrapper)
-  - Validates response is JSON (not HTML) before parsing
-  - Parses Yahoo Finance chart JSON: `data.chart.result[0]` → timestamps + `indicators.quote[0]` (open/high/low/close/volume)
-  - Returns same `TimeSeries | StooqError` type as current `stooq.ts`
-  - Exports `fetchStockHistory` (aliased as `fetchStooqHistory` for backward compat) and `filterByTimeRange`
-  - For `3Y` range: request `5y` from Yahoo and filter client-side
-  - Timeout of 15 seconds per attempt
+- New `fmpFinance.ts` module that fetches data from Financial Modeling Prep (FMP) API using the public `demo` key
+  - Endpoint: `https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}?apikey=demo`
+  - This is CORS-compatible and requires no signup
+  - Parse FMP JSON response into `TimeSeries` / `OHLCRow[]`
+  - FMP ticker format: mostly same as US tickers (AAPL, MSFT, etc.), EU tickers may need mapping (e.g. LVMH.PA → MC.PA or similar)
 
 ### Modify
-- `src/frontend/src/lib/stooq.ts`: replace all content with re-exports from `yahooFinance.ts` so no other files need to change (or update all imports directly)
-- `src/frontend/src/hooks/usePortfolio.ts`: if importing from `stooq`, update to use `fetchStockHistory`
-- `src/frontend/src/pages/CompanyDetailPage.tsx`: already imports `filterByTimeRange` from `stooq` — ensure this still works
+- `yahooFinance.ts`: Rename/refactor `fetchStooqHistory` to use FMP as **primary source**, then Yahoo Finance direct as fallback, then Stooq via proxy as last resort
+  - Keep function name `fetchStooqHistory` to avoid changing all callers
+  - Implement proper ticker mapping for FMP (EU tickers)
+  - Add robust error handling: if FMP fails, try Yahoo direct, then Stooq proxy
+- Ticker mappings in `companyUniverse.ts` or a dedicated mapping file: ensure FMP-compatible tickers for all 100 companies
+- Footer note in `OpportunitiesPage`: update to mention FMP as data source
 
 ### Remove
-- The CORS proxy cascade logic for Stooq CSV — replaced by Yahoo Finance approach
-- The CSV parsing logic — replaced by Yahoo Finance JSON parsing
+- Remove the excessive parallel Yahoo Finance strategies (crumb, CSV v7, multiple proxies in parallel) that caused rate limiting and complexity
+- Simplify to: FMP first (reliable, CORS-compatible) → Yahoo direct fallback → Stooq proxy last resort
 
 ## Implementation Plan
 
-1. Create `src/frontend/src/lib/yahooFinance.ts` with:
-   - `stooqToYahoo(ticker: string): string` converter
-   - `fetchYahooChart(yahooSymbol: string): Promise<any>` with 3-attempt strategy (direct, corsproxy.io, allorigins.win)
-   - `parseYahooChart(data: any, stooqTicker: string): OHLCRow[]` parser
-   - `fetchStooqHistory(ticker: string): Promise<TimeSeries | StooqError>` (main export, same signature as before)
-   - `filterByTimeRange` (same as before, re-export)
-   - All error messages in French
-2. Replace `src/frontend/src/lib/stooq.ts` content entirely with imports/re-exports from `yahooFinance.ts` to maintain backward compatibility with all existing imports
-3. Run validate
+1. Create `src/frontend/src/lib/fmpFinance.ts`:
+   - Fetch from `https://financialmodelingprep.com/api/v3/historical-price-full/{SYMBOL}?apikey=demo`
+   - Parse JSON: `response.historical[]` with fields `date`, `open`, `high`, `low`, `close`, `volume`
+   - Return `TimeSeries | StooqError`
+   - Add FMP ticker mapping for European tickers (e.g. LVMH.PA, MC.PA format)
+   - 15-second timeout
+
+2. Rewrite `src/frontend/src/lib/yahooFinance.ts`:
+   - `fetchStooqHistory(ticker)`: try FMP first → Yahoo Finance direct → Stooq via corsproxy.io
+   - Sequential (not parallel) to avoid rate limiting
+   - Keep `filterByTimeRange` utility or import from `stooq.ts`
+   - Map tickers to FMP format before calling FMP
+
+3. Keep all other files unchanged (hooks, pages, components)
+
+4. Validate and deploy

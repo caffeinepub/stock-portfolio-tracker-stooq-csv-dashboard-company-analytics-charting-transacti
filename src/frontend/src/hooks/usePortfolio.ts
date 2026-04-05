@@ -3,13 +3,13 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { calculatePositionMetrics } from "../lib/portfolioMath";
-import { fetchStooqHistory } from "../lib/stooq";
 import { STORAGE_KEYS } from "../lib/storageKeys";
 import type {
   PortfolioSummary,
   PositionMetrics,
   Transaction,
 } from "../lib/types";
+import { fetchStooqHistory } from "../lib/yahooFinance";
 import { useLocalStorage } from "./useLocalStorage";
 
 export function usePortfolio() {
@@ -24,7 +24,8 @@ export function usePortfolio() {
 
   const priceQueries = useQueries({
     queries: tickers.map((ticker) => ({
-      queryKey: ["stooq-history", ticker],
+      // Use consistent "stock-history" key to share cache with CompanyDetailPage
+      queryKey: ["stock-history", ticker],
       queryFn: async () => {
         const result = await fetchStooqHistory(ticker);
         if ("type" in result) throw new Error(result.message);

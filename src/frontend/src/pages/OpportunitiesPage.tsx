@@ -18,8 +18,8 @@ import { useState } from "react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useTickerMapping } from "../hooks/useTickerMapping";
 import { calculateStatistics } from "../lib/analytics";
-import { fetchStooqHistory } from "../lib/stooq";
 import type { OHLCRow } from "../lib/types";
+import { fetchStooqHistory } from "../lib/yahooFinance";
 
 const DIP_THRESHOLD = 10;
 
@@ -52,7 +52,8 @@ export function OpportunitiesPage() {
 
   const results = useQueries({
     queries: companiesToFetch.map((company) => ({
-      queryKey: ["stooq-history", company.ticker],
+      // Use consistent "stock-history" key to share cache with CompanyDetailPage
+      queryKey: ["stock-history", company.ticker],
       queryFn: async () => {
         const result = await fetchStooqHistory(company.ticker);
         if ("type" in result) throw new Error(result.message);
@@ -357,8 +358,9 @@ export function OpportunitiesPage() {
       {/* Footer note */}
       {!isEmpty && (
         <p className="text-xs text-muted-foreground text-center">
-          Seuil affiché : ≤{DIP_THRESHOLD}% du plus bas 52 semaines · Données
-          Stooq · Cliquez sur une ligne pour ouvrir la fiche entreprise
+          Seuil affiché : ≤{DIP_THRESHOLD}% du plus bas 52 semaines · Yahoo
+          Finance / Stooq · Cliquez sur une ligne pour ouvrir la fiche
+          entreprise
         </p>
       )}
     </div>
