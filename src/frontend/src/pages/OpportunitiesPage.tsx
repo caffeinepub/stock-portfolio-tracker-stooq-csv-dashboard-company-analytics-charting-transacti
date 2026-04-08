@@ -11,10 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useActor } from "@caffeineai/core-infrastructure";
 import { useQueries } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 import { useState } from "react";
+import { createActor } from "../backend";
 import { useFavorites } from "../hooks/useFavorites";
 import { useTickerMapping } from "../hooks/useTickerMapping";
 import { calculateStatistics } from "../lib/analytics";
@@ -45,6 +47,7 @@ export function OpportunitiesPage() {
   const [companies] = useTickerMapping();
   const { favorites } = useFavorites();
   const [favoritesOnly, setFavoritesOnly] = useState(true);
+  const { actor, isFetching: actorLoading } = useActor(createActor);
 
   const companiesToFetch = favoritesOnly
     ? companies.filter((c) => favorites.includes(c.ticker))
@@ -55,11 +58,13 @@ export function OpportunitiesPage() {
       // Use consistent "stock-history" key to share cache with CompanyDetailPage
       queryKey: ["stock-history", company.ticker],
       queryFn: async () => {
-        const result = await fetchStooqHistory(company.ticker);
+        if (!actor) return null;
+        const result = await fetchStooqHistory(actor, company.ticker);
         if ("type" in result) throw new Error(result.message);
         return result;
       },
-      staleTime: 5 * 60 * 1000,
+      enabled: !!actor && !actorLoading,
+      staleTime: 15 * 60 * 1000,
       retry: 1,
     })),
   });
@@ -358,8 +363,8 @@ export function OpportunitiesPage() {
       {/* Footer note */}
       {!isEmpty && (
         <p className="text-xs text-muted-foreground text-center">
-          Seuil affiché : ≤{DIP_THRESHOLD}% du plus bas 52 semaines · Yahoo
-          Finance / Stooq · Cliquez sur une ligne pour ouvrir la fiche
+          Seuil affiché : ≤{DIP_THRESHOLD}% du plus bas 52 semaines · Données
+          différées ~15 min · Cliquez sur une ligne pour ouvrir la fiche
           entreprise
         </p>
       )}

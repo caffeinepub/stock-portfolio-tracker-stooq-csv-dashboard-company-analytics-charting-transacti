@@ -27,8 +27,8 @@ import { useTickerMapping } from "../hooks/useTickerMapping";
 import { useTransactions } from "../hooks/useTransactions";
 import { calculateStatistics } from "../lib/analytics";
 import { calculatePositionMetrics } from "../lib/portfolioMath";
-import { filterByTimeRange } from "../lib/stooq";
 import type { TimeRange } from "../lib/types";
+import { filterByTimeRange } from "../lib/yahooFinance";
 
 export function CompanyDetailPage() {
   const { ticker } = useParams({ from: "/company/$ticker" });

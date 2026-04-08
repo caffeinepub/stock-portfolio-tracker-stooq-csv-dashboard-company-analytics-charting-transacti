@@ -1,7 +1,9 @@
 // Portfolio aggregation hook
 
+import { useActor } from "@caffeineai/core-infrastructure";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { createActor } from "../backend";
 import { calculatePositionMetrics } from "../lib/portfolioMath";
 import { STORAGE_KEYS } from "../lib/storageKeys";
 import type {
@@ -18,6 +20,8 @@ export function usePortfolio() {
     {},
   );
 
+  const { actor, isFetching: actorLoading } = useActor(createActor);
+
   const tickers = Object.keys(allTransactions).filter(
     (ticker) => (allTransactions[ticker] || []).length > 0,
   );
@@ -27,16 +31,18 @@ export function usePortfolio() {
       // Use consistent "stock-history" key to share cache with CompanyDetailPage
       queryKey: ["stock-history", ticker],
       queryFn: async () => {
-        const result = await fetchStooqHistory(ticker);
+        if (!actor) return null;
+        const result = await fetchStooqHistory(actor, ticker);
         if ("type" in result) throw new Error(result.message);
         return result;
       },
-      staleTime: 5 * 60 * 1000,
+      enabled: !!actor && !actorLoading,
+      staleTime: 15 * 60 * 1000,
       retry: 1,
     })),
   });
 
-  const isLoading = priceQueries.some((q) => q.isLoading);
+  const isLoading = actorLoading || priceQueries.some((q) => q.isLoading);
   const hasError = priceQueries.some((q) => q.isError);
 
   const summary: PortfolioSummary | null = useMemo(() => {

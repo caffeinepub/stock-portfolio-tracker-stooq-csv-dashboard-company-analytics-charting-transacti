@@ -8,60 +8,39 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const http_header = IDL.Record({
-  'value' : IDL.Text,
-  'name' : IDL.Text,
-});
-export const http_request_result = IDL.Record({
+export const HttpHeader = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+export const HttpRequestResult = IDL.Record({
   'status' : IDL.Nat,
   'body' : IDL.Vec(IDL.Nat8),
-  'headers' : IDL.Vec(http_header),
+  'headers' : IDL.Vec(HttpHeader),
 });
-export const TransformationInput = IDL.Record({
+export const TransformArgs = IDL.Record({
   'context' : IDL.Vec(IDL.Nat8),
-  'response' : http_request_result,
-});
-export const TransformationOutput = IDL.Record({
-  'status' : IDL.Nat,
-  'body' : IDL.Vec(IDL.Nat8),
-  'headers' : IDL.Vec(http_header),
+  'response' : HttpRequestResult,
 });
 
 export const idlService = IDL.Service({
-  'fetchStooqCSV' : IDL.Func([IDL.Text], [IDL.Text], []),
-  'transform' : IDL.Func(
-      [TransformationInput],
-      [TransformationOutput],
-      ['query'],
-    ),
+  'fetchStockHistory' : IDL.Func([IDL.Text], [IDL.Text], []),
+  'transform' : IDL.Func([TransformArgs], [HttpRequestResult], ['query']),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
-  const http_request_result = IDL.Record({
+  const HttpHeader = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+  const HttpRequestResult = IDL.Record({
     'status' : IDL.Nat,
     'body' : IDL.Vec(IDL.Nat8),
-    'headers' : IDL.Vec(http_header),
+    'headers' : IDL.Vec(HttpHeader),
   });
-  const TransformationInput = IDL.Record({
+  const TransformArgs = IDL.Record({
     'context' : IDL.Vec(IDL.Nat8),
-    'response' : http_request_result,
-  });
-  const TransformationOutput = IDL.Record({
-    'status' : IDL.Nat,
-    'body' : IDL.Vec(IDL.Nat8),
-    'headers' : IDL.Vec(http_header),
+    'response' : HttpRequestResult,
   });
   
   return IDL.Service({
-    'fetchStooqCSV' : IDL.Func([IDL.Text], [IDL.Text], []),
-    'transform' : IDL.Func(
-        [TransformationInput],
-        [TransformationOutput],
-        ['query'],
-      ),
+    'fetchStockHistory' : IDL.Func([IDL.Text], [IDL.Text], []),
+    'transform' : IDL.Func([TransformArgs], [HttpRequestResult], ['query']),
   });
 };
 

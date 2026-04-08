@@ -89,45 +89,40 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface TransformationInput {
-    context: Uint8Array;
-    response: http_request_result;
-}
-export interface TransformationOutput {
+export interface HttpRequestResult {
     status: bigint;
     body: Uint8Array;
-    headers: Array<http_header>;
+    headers: Array<HttpHeader>;
 }
-export interface http_header {
+export interface HttpHeader {
     value: string;
     name: string;
 }
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
+export interface TransformArgs {
+    context: Uint8Array;
+    response: HttpRequestResult;
 }
 export interface backendInterface {
-    fetchStooqCSV(ticker: string): Promise<string>;
-    transform(input: TransformationInput): Promise<TransformationOutput>;
+    fetchStockHistory(ticker: string): Promise<string>;
+    transform(input: TransformArgs): Promise<HttpRequestResult>;
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async fetchStooqCSV(arg0: string): Promise<string> {
+    async fetchStockHistory(arg0: string): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.fetchStooqCSV(arg0);
+                const result = await this.actor.fetchStockHistory(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.fetchStooqCSV(arg0);
+            const result = await this.actor.fetchStockHistory(arg0);
             return result;
         }
     }
-    async transform(arg0: TransformationInput): Promise<TransformationOutput> {
+    async transform(arg0: TransformArgs): Promise<HttpRequestResult> {
         if (this.processError) {
             try {
                 const result = await this.actor.transform(arg0);

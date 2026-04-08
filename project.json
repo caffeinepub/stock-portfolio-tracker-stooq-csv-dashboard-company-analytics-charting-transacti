@@ -1,0 +1,21 @@
+{
+  "overview": "Professional stock portfolio tracker in French with 100 major international companies. Financial data is fetched server-side (no CORS issues), with interactive charts, transaction management, and a buy-the-dip opportunities page.",
+  "features": [
+    "100 major international companies with server-side data fetching",
+    "Interactive OHLCV charts with zoom and custom horizontal lines",
+    "Transaction management with buy/sell tracking and P&L calculation",
+    "Opportunités page for identifying buy-the-dip opportunities",
+    "Dark/light mode with responsive sidebar navigation",
+    "All data persisted in localStorage, French UI throughout"
+  ],
+  "category": "finance",
+  "tags": [
+    "finance",
+    "stocks",
+    "portfolio",
+    "charts",
+    "french",
+    "dashboard"
+  ],
+  "last_updated": "2026-04-08T18:32:56.728Z"
+}

@@ -1,0 +1,20 @@
+type TransformArgs = 
+ record {
+   context: blob;
+   response: HttpRequestResult;
+ };
+type HttpRequestResult = 
+ record {
+   body: blob;
+   headers: vec HttpHeader;
+   status: nat;
+ };
+type HttpHeader = 
+ record {
+   name: text;
+   value: text;
+ };
+service : {
+  fetchStockHistory: (ticker: text) -> (text);
+  transform: (input: TransformArgs) -> (HttpRequestResult) query;
+}

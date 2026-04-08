@@ -7,25 +7,20 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface TransformationInput {
-    context: Uint8Array;
-    response: http_request_result;
-}
-export interface TransformationOutput {
+export interface HttpRequestResult {
     status: bigint;
     body: Uint8Array;
-    headers: Array<http_header>;
+    headers: Array<HttpHeader>;
 }
-export interface http_header {
+export interface HttpHeader {
     value: string;
     name: string;
 }
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
+export interface TransformArgs {
+    context: Uint8Array;
+    response: HttpRequestResult;
 }
 export interface backendInterface {
-    fetchStooqCSV(ticker: string): Promise<string>;
-    transform(input: TransformationInput): Promise<TransformationOutput>;
+    fetchStockHistory(ticker: string): Promise<string>;
+    transform(input: TransformArgs): Promise<HttpRequestResult>;
 }
